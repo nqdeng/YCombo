@@ -50,7 +50,7 @@ YCombo supports source file dependencies management. YCombo combines files start
 	/* #require <PATH> */
 	/* #require "PATH" */
 
-Both single-line and multi-line style could be used in JS file while only multi-line style could be used in CSS file. PATH wrapped in <> is related to the Root Folder, while PATH wrapped in "" is related to the file which requires others.
+Both single-line and multi-line style could be used in JS file while only multi-line style could be used in CSS file. PATH wrapped in `<>` is related to the Root Folder, while PATH wrapped in `""` is related to the file which requires others.
 
 Required file could continue requiring other files by the same approach, which finally results a dependency tree grown from the seed.
 
@@ -85,7 +85,7 @@ If we use `/foo/bar` as the root folder, we could alternatively write this:
 
 	// #require <b.js>
 
-Because Unicorn currently resolve dependencies using the <> style, so we support this way in YCombo. And since YCombo is a dev-tool for Alibaba.com first, YCombo will automatic detect the root folder(which is the htdocs folder) used in Alibaba.com by checking the directory structure if root folder is not specified explicitly from the command-line arguments. For the usage outside Alibaba.com, we recommend the "" style because it's more easy and flexible.
+Because Unicorn currently resolve dependencies using the `<>` style, so we support this way in YCombo. And since YCombo is a dev-tool for Alibaba.com first, YCombo will automatic detect the root folder(which is the htdocs folder) used in Alibaba.com by checking the directory structure if root folder is not specified explicitly from the command-line arguments. For the usage outside Alibaba.com, we recommend the `""` style because it's more easy and flexible.
 
 ### Seed Extension Name Prefix
 
@@ -95,7 +95,7 @@ You could use different prefix to distinguish different type of seed files. Doin
 
 ### Sources Compression
 
-After seed file and its dependencies all put together, YCombo uses YUI Compressor to compress the source code and product the final output. The output file has the same name with the seed file but the original extension name, and locates in the same folder of the seed file. For example, a.seed.js products a.js in the same folder.
+After seed file and its dependencies all put together, YCombo uses YUI Compressor to compress the source code and product the final output. The output file has the same name with the seed file but the original extension name, and locates in the same folder of the seed file. For example, `a.seed.js` products `a.js` in the same folder.
 
 License
 -------

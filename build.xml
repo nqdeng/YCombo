@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="YCombo" default="jar" basedir=".">
+	
+	<target name="load.properties">
+		<property file="ant.properties" />
+	</target>
+	
+	<target name="init" depends="load.properties">
+		<mkdir dir="${bin.dir}" />
+		<mkdir dir="${build.dir}" />
+	</target>
+	
+	<target name="compile" depends="init">
+		<javac srcdir="${src.dir}" destdir="${bin.dir}" includes="**/*.java">
+			<classpath>
+				<pathelement location="${lib.dir}/yuicompressor-2.4.7.jar"/>
+			</classpath>
+		</javac>
+	</target>
+	
+	<target name="jar" depends="compile">
+		<jar jarfile="${build.dir}/${jar.name}" basedir="${bin.dir}">
+			<zipfileset src="${lib.dir}/yuicompressor-2.4.7.jar" includes="**/*.class" />
+			<manifest>
+				<attribute name="Main-Class" value="com.alibaba.f2e.ycombo.App"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="clean" depends="load.properties">
+		<delete dir="${bin.dir}" quiet="true" />
+		<delete dir="${build.dir}" quiet="true" />
+	</target>
+	
+</project>

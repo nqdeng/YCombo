@@ -163,6 +163,7 @@ public class Compressor {
 	 */
 	private Reader prepareInput(File seed) {
 		ArrayList<String> output = sourceFile.combo(seed);
+		Reader reader = null;
 		
 		int len = 0;
     	for (String path : output) {
@@ -174,7 +175,13 @@ public class Compressor {
     		buffer.put(sourceFile.read(path));
     	}
     	
-    	return new InputStreamReader(new ByteArrayInputStream(buffer.array()));
+    	try {
+    		reader = new InputStreamReader(new ByteArrayInputStream(buffer.array()), this.charset);
+		} catch (UnsupportedEncodingException e) {
+			App.exit(e);
+		}
+		
+		return reader;
 	}
 	
 	/**
@@ -189,7 +196,7 @@ public class Compressor {
 		try {
 			// Output file locates in the same folder,
 			// and has the same name with the seed file but a different extension name.
-			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("(?:\\.\\w+)*$", "") + "." + type), charset);
+			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("(?:\\.\\w+)*$", "") + "." + type), this.charset);
 		} catch (UnsupportedEncodingException e) {
 			App.exit(e);
 		} catch (FileNotFoundException e) {

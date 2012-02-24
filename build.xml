@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="YCombo" default="jar" basedir=".">
+<project name="YCombo" default="build" basedir=".">
 	
 	<target name="load.properties">
 		<property file="ant.properties" />
@@ -11,7 +11,7 @@
 	</target>
 	
 	<target name="compile" depends="init">
-		<javac srcdir="${src.dir}" destdir="${bin.dir}" includes="**/*.java">
+		<javac srcdir="${src.dir}" destdir="${bin.dir}" includes="**/*.java" includeantruntime="false">
 			<classpath>
 				<pathelement location="${lib.dir}/yuicompressor-2.4.7.jar"/>
 			</classpath>
@@ -20,12 +20,23 @@
 	
 	<target name="jar" depends="compile">
 		<jar jarfile="${build.dir}/${jar.name}" basedir="${bin.dir}">
-			<zipfileset src="${lib.dir}/yuicompressor-2.4.7.jar" includes="**/*.class" />
+			<zipfileset src="${lib.dir}/yuicompressor-${version.number}.jar" includes="**/*.class" />
 			<manifest>
 				<attribute name="Main-Class" value="com.alibaba.f2e.ycombo.App"/>
 			</manifest>
 		</jar>
 	</target>
+	
+	<target name="loader" depends="load.properties">
+		<echo file="${build.dir}/ycombo.cmd" message=":: Created by ant, please don't edit manually.&#xD;&#xA;" />
+		<echo file="${build.dir}/ycombo.cmd" message="@java -jar &quot;%~dp0\ycombo-${version.number}.jar&quot; %*&#xD;&#xA;" append="true" />
+		<echo file="${build.dir}/ycombo" message="#!/bin/sh&#xA;" />
+		<echo file="${build.dir}/ycombo" message="java -jar &quot;`dirname &quot;$0&quot;`/ycombo-${version.number}.jar&quot; &quot;$@&quot;&#xA;" append="true" />
+		<echo file="${build.dir}/ycombo" message="ret=$?&#xA;" append="true" />
+		<echo file="${build.dir}/ycombo" message="exit $ret&#xA;" append="true" />
+	</target>
+	
+	<target name="build" depends="jar,loader" />
 	
 	<target name="clean" depends="load.properties">
 		<delete dir="${bin.dir}" quiet="true" />

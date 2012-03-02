@@ -20,7 +20,7 @@
 	
 	<target name="jar" depends="compile">
 		<jar jarfile="${build.dir}/${jar.name}" basedir="${bin.dir}">
-			<zipfileset src="${lib.dir}/yuicompressor-${version.number}.jar" includes="**/*.class" />
+			<zipfileset src="${lib.dir}/yuicompressor-${version.yuicompressor.number}.jar" includes="**/*.class" />
 			<manifest>
 				<attribute name="Main-Class" value="com.alibaba.f2e.ycombo.App"/>
 			</manifest>

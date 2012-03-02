@@ -47,6 +47,9 @@ public class Compressor {
 	// SourceFile instance.
 	private SourceFile sourceFile;
 	
+	// New line character.
+	private byte[] NEW_LINE;
+	
 	/**
 	 * Create a new Compressor instance with options.
 	 * @param root Root path specified from command line.
@@ -64,6 +67,12 @@ public class Compressor {
 		this.verbose = verbose;
 		this.preserveAllSemiColons = preserveAllSemiColons;
 		this.disableOptimizations = disableOptimizations;
+		
+		try {
+			this.NEW_LINE = "\r\n".getBytes(this.charset);
+		} catch (UnsupportedEncodingException e) {
+			App.exit(e);
+		}
 		
 		sourceFile = new SourceFile(root, charset);
 	}
@@ -168,11 +177,13 @@ public class Compressor {
 		int len = 0;
     	for (String path : output) {
     		len += sourceFile.read(path).length;
+    		len += this.NEW_LINE.length;
     	}
     	
     	ByteBuffer buffer = ByteBuffer.allocate(len);
     	for (String path : output) {
     		buffer.put(sourceFile.read(path));
+    		buffer.put(this.NEW_LINE);
     	}
     	
     	try {

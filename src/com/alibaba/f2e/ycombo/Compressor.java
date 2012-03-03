@@ -50,6 +50,9 @@ public class Compressor {
 	// New line character.
 	private byte[] NEW_LINE;
 	
+	// Seed file extension name prefix.
+	private String prefix;
+	
 	/**
 	 * Create a new Compressor instance with options.
 	 * @param root Root path specified from command line.
@@ -60,8 +63,9 @@ public class Compressor {
 	 * @param preserveAllSemiColons Preserve all semicolons.
 	 * @param disableOptimizations Disable all micro optimizations.
 	 */
-	public Compressor(String root, String charset, int linebreakpos, boolean munge, boolean verbose, boolean preserveAllSemiColons, boolean disableOptimizations) {
+	public Compressor(String root, String charset, String prefix, int linebreakpos, boolean munge, boolean verbose, boolean preserveAllSemiColons, boolean disableOptimizations) {
 		this.charset = charset;
+		this.prefix = prefix;
 		this.linebreakpos = linebreakpos;
 		this.munge = munge;
 		this.verbose = verbose;
@@ -207,7 +211,7 @@ public class Compressor {
 		try {
 			// Output file locates in the same folder,
 			// and has the same name with the seed file but a different extension name.
-			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("(?:\\.\\w+)*$", "") + "." + type), this.charset);
+			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("\\." + this.prefix + "\\." + type + "$", "." + type)), this.charset);
 		} catch (UnsupportedEncodingException e) {
 			App.exit(e);
 		} catch (FileNotFoundException e) {

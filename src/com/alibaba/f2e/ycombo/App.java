@@ -109,7 +109,7 @@ public class App {
             	input = new String[] { "." };
             }
             
-            Compressor compressor = new Compressor(root, charset, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
+            Compressor compressor = new Compressor(root, charset, prefix, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
             
             // Find all seed files for given input.
             ArrayList<File> seeds = new ArrayList<File>();

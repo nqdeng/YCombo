@@ -50,8 +50,8 @@ public class Compressor {
 	// New line character.
 	private byte[] NEW_LINE;
 	
-	// Seed file extension name prefix.
-	private String prefix;
+	// Seed file extension name.
+	private String extname;
 	
 	/**
 	 * Create a new Compressor instance with options.
@@ -63,9 +63,9 @@ public class Compressor {
 	 * @param preserveAllSemiColons Preserve all semicolons.
 	 * @param disableOptimizations Disable all micro optimizations.
 	 */
-	public Compressor(String root, String charset, String prefix, int linebreakpos, boolean munge, boolean verbose, boolean preserveAllSemiColons, boolean disableOptimizations) {
+	public Compressor(String root, String charset, String extname, int linebreakpos, boolean munge, boolean verbose, boolean preserveAllSemiColons, boolean disableOptimizations) {
 		this.charset = charset;
-		this.prefix = prefix;
+		this.extname = extname;
 		this.linebreakpos = linebreakpos;
 		this.munge = munge;
 		this.verbose = verbose;
@@ -90,16 +90,16 @@ public class Compressor {
 			String name = seed.getName();
 			String type = null;
 			
-			if (name.endsWith(".js")) {
+			if (name.endsWith(".js." + this.extname)) {
 				type = "js";
-			} else if (name.endsWith(".css")) {
+			} else if (name.endsWith(".css." + this.extname)) {
 				type = "css";
 			} else {
 				App.exit("Cannot detect file type of " + name);
 			}
 			
 			Reader in = prepareInput(seed);
-			Writer out = prepareOutput(seed, type);
+			Writer out = prepareOutput(seed);
 
 			if (type.equals("js")) {
 				compressJS(in, out);
@@ -202,16 +202,15 @@ public class Compressor {
 	/**
 	 * Open the output file then return the Writer.
 	 * @param seed The seed file.
-	 * @param type The type of seed file.
 	 * @return The FileOutputStream Writer.
 	 */
-	private Writer prepareOutput(File seed, String type) {
+	private Writer prepareOutput(File seed) {
 		Writer w = null;
 		
 		try {
 			// Output file locates in the same folder,
 			// and has the same name with the seed file but a different extension name.
-			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("\\." + this.prefix + "\\." + type + "$", "." + type)), this.charset);
+			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("\\." + this.extname + "$", "")), this.charset);
 		} catch (UnsupportedEncodingException e) {
 			App.exit(e);
 		} catch (FileNotFoundException e) {

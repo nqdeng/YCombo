@@ -30,9 +30,9 @@ Since YCombo wraps YUI Compressor inside, most command-line arguments of YUI Com
 				
 	Combo Options
 	  --root <folder>          Specify the root folder of dependent files.
-	  --prefix <prefix>        Specify the extension name prefix of seed file.
+	  --extname <prefix>       Specify the extension name of seed file.
 	                           It defaults to "seed" so seed file has a default
-	                           extension name ".seed.js" or ".seed.css".
+	                           extension name ".js.seed" or ".css.seed".
 				
 	If root folder is not specified, it defaults to workdir. If workdir is inside
 	intl-style/xxx/htdocs, htdocs will be used as root folder instead.
@@ -87,15 +87,15 @@ If we use `/foo/bar` as the root folder, we could alternatively write this:
 
 Because Unicorn currently resolve dependencies using the `<>` style, so we support this way in YCombo. And since YCombo is a dev-tool for Alibaba.com first, YCombo will automatic detect the root folder(which is the htdocs folder) used in Alibaba.com by checking the directory structure if root folder is not specified explicitly from the command-line arguments. For the usage outside Alibaba.com, we recommend the `""` style because it's more easy and flexible.
 
-### Seed Extension Name Prefix
+### Seed Extension Name
 
-If one of the inputs from command-line arguments is a folder, YCombo will travel the whole folder and find all seed files to combine by its extension name. Extension name of seed files is prefix with `seed` by default, so the full extension name becomes `.seed.js` or `.seed.css`.
+If one of the inputs from command-line arguments is a folder, YCombo will travel the whole folder and find all seed files to combine by its extension name. Extension name of seed files is `seed` by default, so the full extension name becomes `.js.seed` or `.css.seed`.
 
-You could use different prefix to distinguish different type of seed files. Doing so benefits you from allowing to use a folder as the input but only combining a special subset of seed files inside.
+You could use different extname to distinguish different type of seed files. Doing so benefits you from allowing to use a folder as the input but only combining a special subset of seed files inside.
 
 ### Sources Compression
 
-After seed file and its dependencies all put together, YCombo uses YUI Compressor to compress the source code and product the final output. The output file has the same name with the seed file but the original extension name, and locates in the same folder of the seed file. For example, `a.seed.js` products `a.js` in the same folder.
+After seed file and its dependencies all put together, YCombo uses YUI Compressor to compress the source code and product the final output. The output file has the same name with the seed file but the original extension name, and locates in the same folder of the seed file. For example, `a.js.seed` products `a.js` in the same folder.
 
 License
 -------

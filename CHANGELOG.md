@@ -9,3 +9,8 @@
 2012.03.03, Version 0.1.2
 -------------------------
 * Fix the incorrect output filename when input filename contains dot.
+
+2012.03.13, Version 0.1.3
+-------------------------
+* Change seed file extension name from seed.[TYPE] to [TYPE].seed to avoid conflict with Unicorn.
+* Change common-line option "--prefix" to "--extname" to response to the change above.

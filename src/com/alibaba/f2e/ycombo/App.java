@@ -49,7 +49,7 @@ public class App {
         CmdLineParser.Option helpOpt = parser.addBooleanOption('h', "help");
         CmdLineParser.Option charsetOpt = parser.addStringOption("charset");
 		CmdLineParser.Option rootOpt = parser.addStringOption("root");
-		CmdLineParser.Option prefixOpt = parser.addStringOption("prefix");
+		CmdLineParser.Option extnameOpt = parser.addStringOption("extname");
 		
 		try {
 			parser.parse(args);
@@ -95,11 +95,11 @@ public class App {
             // Deal with --root <folder>
             String root = (String) parser.getOptionValue(rootOpt);
             
-            // Deal with --prefix <prefix>
-            String prefix = (String) parser.getOptionValue(prefixOpt);
-            if (prefix == null) {
-            	// Extension name prefix of seed file defaults to "seed".
-            	prefix = "seed";
+            // Deal with --extname <extname>
+            String extname = (String) parser.getOptionValue(extnameOpt);
+            if (extname == null) {
+            	// Extension name of seed file defaults to "seed".
+            	extname = "seed";
             }
             
             // Deal with [input file]
@@ -109,12 +109,12 @@ public class App {
             	input = new String[] { "." };
             }
             
-            Compressor compressor = new Compressor(root, charset, prefix, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
+            Compressor compressor = new Compressor(root, charset, extname, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
             
             // Find all seed files for given input.
             ArrayList<File> seeds = new ArrayList<File>();
             for (String path : input) {
-            	findSeed(new File(path), seeds, "." + prefix + ".js", "." + prefix + ".css");
+            	findSeed(new File(path), seeds, ".js." + extname, ".css." + extname);
             }
             
             // Compress each seed.
@@ -169,9 +169,9 @@ public class App {
 			
 			+ "Combo Options\n"
 			+ "  --root <folder>          Specify the root folder of dependent files.\n"
-			+ "  --prefix <prefix>        Specify the extension name prefix of seed file.\n"
+			+ "  --extname <extname>      Specify the extension name of seed file.\n"
 			+ "                           It defaults to \"seed\" so seed file has a default\n"
-			+ "                           extension name \".seed.js\" or \".seed.css\".\n\n"
+			+ "                           extension name \".js.seed\" or \".css.seed\".\n\n"
 			
 			+ "If root folder is not specified, it defaults to workdir. If workdir is inside\n"
 			+ "intl-style/xxx/htdocs, htdocs will be used as root folder instead.\n\n"

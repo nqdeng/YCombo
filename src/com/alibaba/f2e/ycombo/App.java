@@ -17,11 +17,36 @@ import java.util.*;
  */
 public class App {
 	/**
+	 * Indicate whether print normal information to console.
+	 */
+	private static boolean verbose;
+	
+	/**
+	 * Print normal information to console.
+	 * @param msg Information message.
+	 */
+	public static void info(String msg) {
+		if (verbose && msg.length() > 0) {
+			System.err.println("\n[INFO] " + msg);
+		}
+	}
+	
+	/**
+	 * Print error message to console.
+	 * @param msg Error message.
+	 */
+	public static void err(String msg) {
+		if (msg.length() > 0) {
+			System.err.println("\n[ERROR] " + msg);
+		}
+	}
+	
+	/**
 	 * Print error message and exit application.
 	 * @param msg Error message.
 	 */
 	public static void exit(String msg) {
-		System.err.println("\n[ERROR] " + msg);
+		App.err(msg);
 		System.exit(1);
 	}
 	
@@ -50,6 +75,7 @@ public class App {
         CmdLineParser.Option charsetOpt = parser.addStringOption("charset");
 		CmdLineParser.Option rootOpt = parser.addStringOption("root");
 		CmdLineParser.Option extnameOpt = parser.addStringOption("extname");
+		CmdLineParser.Option nocompressOpt = parser.addBooleanOption("nocompress");
 		
 		try {
 			parser.parse(args);
@@ -61,15 +87,13 @@ public class App {
 			}
 			
 			// Deal with -v, --verbose
-			boolean verbose = parser.getOptionValue(verboseOpt) != null;
+			verbose = parser.getOptionValue(verboseOpt) != null;
 			
 			// Deal with --charset <charset>
             String charset = (String) parser.getOptionValue(charsetOpt);
             if (charset == null || !Charset.isSupported(charset)) {
             	charset = "UTF-8";
-                if (verbose) {
-                    System.err.println("\n[INFO] Using default charset " + charset);
-                }
+                App.info("Using default charset " + charset);
             }
             
             // Deal with --line-break <column>
@@ -102,6 +126,9 @@ public class App {
             	extname = "seed";
             }
             
+            // Deal with --nocompress
+            boolean noCompress = parser.getOptionValue(nocompressOpt) != null;
+            
             // Deal with [input file]
             String[] input = parser.getRemainingArgs();
             if (input.length == 0) {
@@ -109,20 +136,17 @@ public class App {
             	input = new String[] { "." };
             }
             
-            Compressor compressor = new Compressor(root, charset, extname, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
-            
             // Find all seed files for given input.
             ArrayList<File> seeds = new ArrayList<File>();
             for (String path : input) {
             	findSeed(new File(path), seeds, ".js." + extname, ".css." + extname);
             }
             
-            // Compress each seed.
-            for (File seed : seeds) {
-            	System.err.println("\n[INFO] Processing " + seed.getAbsolutePath());
-            	compressor.compress(seed);
-            }
-			
+            // Process all seed files.
+            processSeed(seeds, noCompress ?
+            	new Combiner(root, charset, extname) :
+            	new Compressor(root, charset, extname, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations)
+            );
 		} catch (CmdLineParser.OptionException e) {
 			usage();
 		}
@@ -150,6 +174,33 @@ public class App {
 	}
 	
 	/**
+	 * Process each seed file.
+	 * @param seeds List of seed files.
+	 * @param combiner The combiner of compressor instance.
+	 */
+	private static void processSeed(ArrayList<File> seeds, Combiner combiner) {
+		for (File seed : seeds) {
+			Exception exception = null;
+        	
+        	App.info("Begin Processing " + seed.getAbsolutePath());
+        	
+        	// Error in one seed doesn't break the whole task.
+        	try {
+        		combiner.process(seed);
+        	} catch (SourceFileException e) {
+				exception = e;
+            } catch (CombinerException e) {
+            	exception = e;
+            } finally {
+            	if (exception != null) {
+            		App.err(exception.getMessage());
+            		App.err("Failed to process " + seed.getName());
+            	}
+            }
+		}
+	}
+	
+	/**
 	 * Print help message and exit application.
 	 */
 	private static void usage() {
@@ -168,10 +219,11 @@ public class App {
 			+ "  --disable-optimizations  Disable all micro optimizations\n\n"
 			
 			+ "Combo Options\n"
-			+ "  --root <folder>          Specify the root folder of dependent files.\n"
-			+ "  --extname <extname>      Specify the extension name of seed file.\n"
+			+ "  --root <folder>          Specify the root folder of dependent files\n"
+			+ "  --extname <extname>      Specify the extension name of seed file\n"
 			+ "                           It defaults to \"seed\" so seed file has a default\n"
-			+ "                           extension name \".js.seed\" or \".css.seed\".\n\n"
+			+ "                           extension name \".js.seed\" or \".css.seed\"\n"
+			+ "  --nocompress             Combine only, do not compress\n\n"
 			
 			+ "If root folder is not specified, it defaults to workdir. If workdir is inside\n"
 			+ "intl-style/xxx/htdocs, htdocs will be used as root folder instead.\n\n"

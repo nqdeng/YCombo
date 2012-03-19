@@ -54,7 +54,7 @@ public class SourceFile {
 	 * @param seed The seed file.
 	 * @return Output queue with correct dependencies order.
 	 */
-	public ArrayList<String> combo(File seed) {
+	public ArrayList<String> combo(File seed) throws SourceFileException {
 		Stack<ArrayList<String>> tree = new Stack<ArrayList<String>>();
 		ArrayList<String> root = new ArrayList<String>();
 		ArrayList<String> output = new ArrayList<String>();
@@ -74,7 +74,7 @@ public class SourceFile {
 	 * @param path The canonical path of source file.
 	 * @return Source file data.
 	 */
-	public byte[] read(String path) {
+	public byte[] read(String path) throws SourceFileException {
 		if (!binaryCache.containsKey(path)) {
 			try {
 				BufferedInputStream bf = new BufferedInputStream(new FileInputStream(new File(path)));
@@ -100,14 +100,14 @@ public class SourceFile {
 	 * @param charset Source file encoding.
 	 * @return Source file content.
 	 */
-	public String read(String path, String charset) {
+	public String read(String path, String charset) throws SourceFileException {
 		String str = null;
 		byte[] bin = read(path);
 		
 		try {
 			str = Charset.forName(charset).newDecoder().decode(ByteBuffer.wrap(bin)).toString();
 		} catch (CharacterCodingException e) {
-			App.exit("Cannot read " + path + " as " + charset + " encoded file");
+			throw new SourceFileException("Cannot read " + path + " as " + charset + " encoded file");
 		}
 		
 		return str;
@@ -135,15 +135,15 @@ public class SourceFile {
 	 * @param data Binary data of source file.
 	 * @param path The canonical path of source file.
 	 */
-	private void detectBOM(byte[] data, String path) {
+	private void detectBOM(byte[] data, String path) throws SourceFileException {
 		if (data.length > 2 && (byte)(data[0] ^ 0xEF) == 0 && (byte)(data[1] ^ 0xBB) == 0 && (byte)(data[2] ^ 0xBF) == 0) {
-			App.exit("UTF8 BOM was found in " + path);
+			throw new SourceFileException("UTF8 BOM was found in " + path);
 		}
 		else if (data.length > 1 && (byte)(data[0] ^ 0xFE) == 0 && (byte)(data[1] ^ 0xFF) == 0) {
-			App.exit("UTF16BE BOM was found in " + path);
+			throw new SourceFileException("UTF16BE BOM was found in " + path);
 		}
 		else if (data.length > 1 && (byte)(data[0] ^ 0xFF) == 0 && (byte)(data[1] ^ 0xFE) == 0) {
-			App.exit("UTF16LE BOM was found in " + path);
+			throw new SourceFileException("UTF16LE BOM was found in " + path);
 		}
 	}
 	
@@ -152,7 +152,7 @@ public class SourceFile {
 	 * @param path The canonical path of source file.
 	 * @return Path of dependencies. 
 	 */
-	private ArrayList<String> getDependencies(String path) {
+	private ArrayList<String> getDependencies(String path) throws SourceFileException {
 		if (!dependenceMap.containsKey(path)) {
 			ArrayList<String> dependencies = new ArrayList<String>();
 			Matcher m = PATTERN_REQUIRE.matcher(read(path, charset));
@@ -177,7 +177,7 @@ public class SourceFile {
 				if (f.exists()) {
 					dependencies.add(canonize(f));
 				} else {
-					App.exit("Cannot find required file " + required + " in " + path);
+					throw new SourceFileException("Cannot find required file " + required + " in " + path);
 				}
 			}
 			
@@ -238,7 +238,7 @@ public class SourceFile {
 	 * @param footprint The footprint of the traversal.
 	 * @param output Output queue of combined files.
 	 */
-	private void travel(Stack<ArrayList<String>> tree, Stack<String> footprint, ArrayList<String> output) {
+	private void travel(Stack<ArrayList<String>> tree, Stack<String> footprint, ArrayList<String> output) throws SourceFileException {
 		for (String node : tree.peek()) {
 			// Detect circular dependences by looking back footprint.
 			if (footprint.contains(node)) {
@@ -247,7 +247,7 @@ public class SourceFile {
 					msg += "    " + path + " ->\n";
 				}
 				msg += "    " + node;
-				App.exit(msg);
+				throw new SourceFileException(msg);
 			}
 			
 			// Skip visited node.

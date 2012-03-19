@@ -25,10 +25,7 @@ import java.util.*;
 /**
  * Class for wrapping YUI Compressor.
  */
-public class Compressor {
-	// Source file encoding.
-	private String charset;
-	
+public class Compressor extends Combiner {
 	// Insert a line break after the specified column number.
 	private int linebreakpos;
 	
@@ -44,15 +41,6 @@ public class Compressor {
 	// Disable all micro optimizations.
 	private boolean disableOptimizations;
 	
-	// SourceFile instance.
-	private SourceFile sourceFile;
-	
-	// New line character.
-	private byte[] NEW_LINE;
-	
-	// Seed file extension name.
-	private String extname;
-	
 	/**
 	 * Create a new Compressor instance with options.
 	 * @param root Root path specified from command line.
@@ -64,51 +52,47 @@ public class Compressor {
 	 * @param disableOptimizations Disable all micro optimizations.
 	 */
 	public Compressor(String root, String charset, String extname, int linebreakpos, boolean munge, boolean verbose, boolean preserveAllSemiColons, boolean disableOptimizations) {
-		this.charset = charset;
-		this.extname = extname;
+		super(root, charset, extname);
+
 		this.linebreakpos = linebreakpos;
 		this.munge = munge;
 		this.verbose = verbose;
 		this.preserveAllSemiColons = preserveAllSemiColons;
 		this.disableOptimizations = disableOptimizations;
-		
-		try {
-			this.NEW_LINE = "\r\n".getBytes(this.charset);
-		} catch (UnsupportedEncodingException e) {
-			App.exit(e);
-		}
-		
-		sourceFile = new SourceFile(root, charset);
+	}
+	
+	/**
+	 * Process the given seed file.
+	 * @overrides
+	 * @param seed The seed file.
+	 */
+	public void process(File seed) throws SourceFileException, CombinerException {
+		compress(seed);
 	}
 	
 	/**
 	 * Compress the given seed file.
 	 * @param seed The seed file.
 	 */
-	public void compress(File seed) {
+	private void compress(File seed) throws SourceFileException, CombinerException {
+		String name = seed.getName();
+		String type = null;
+		
 		try {
-			String name = seed.getName();
-			String type = null;
-			
 			if (name.endsWith(".js." + this.extname)) {
 				type = "js";
 			} else if (name.endsWith(".css." + this.extname)) {
 				type = "css";
 			} else {
-				App.exit("Cannot detect file type of " + name);
+				throw new CombinerException("Cannot detect seed file type.");
 			}
-			
-			Reader in = prepareInput(seed);
-			Writer out = prepareOutput(seed);
 
 			if (type.equals("js")) {
-				compressJS(in, out);
+				compressJS(seed);
 			} else if (type.equals("css")) {
-				compressCSS(in, out);
+				compressCSS(seed);
 			}
 			
-			in.close();
-			out.close();
 		} catch (IOException e) {
 			App.exit(e);
 		}
@@ -119,15 +103,25 @@ public class Compressor {
 	 * @param in Input reader.
 	 * @param out Output writer.
 	 */
-	private void compressJS(Reader in, Writer out) {
+	private void compressJS(File seed) throws IOException, SourceFileException, CombinerException {
+		Reader in = null;
+		Writer out = null;
+		Exception exception = null;
+		
 		try {
-			new JavaScriptCompressor(in, new ErrorReporter() {
+			in = prepareInput(seed);
+			
+			JavaScriptCompressor compressor = new JavaScriptCompressor(in, new ErrorReporter() {
 			    public void warning(String message, String sourceName,
 			            int line, String lineSource, int lineOffset) {
 			        if (line < 0) {
 			            System.err.println("\n[WARNING] " + message);
 			        } else {
 			            System.err.println("\n[WARNING] " + line + ':' + lineOffset + ':' + message);
+			        }
+			        
+			        if (lineSource != null) {
+			        	System.err.println(lineSource);
 			        }
 			    }
 
@@ -137,7 +131,10 @@ public class Compressor {
 			            System.err.println("\n[ERROR] " + message);
 			        } else {
 			            System.err.println("\n[ERROR] " + line + ':' + lineOffset + ':' + message);
-			            System.err.println(lineSource);
+			        }
+
+			        if (lineSource != null) {
+			        	System.err.println(lineSource);
 			        }
 			    }
 
@@ -146,13 +143,27 @@ public class Compressor {
 			        error(message, sourceName, line, lineSource, lineOffset);
 			        return new EvaluatorException(message);
 			    }
-			}).compress(out, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
+			});
+			
+			// Close the input stream first, and then open the output stream,
+            // in case the output file should override the input file.
+			in.close();
+			in = null;
+			out = prepareOutput(seed);
+			
+			compressor.compress(out, this.linebreakpos, this.munge, this.verbose, this.preserveAllSemiColons, this.disableOptimizations);
 		} catch (EvaluatorException e) {
-			e.printStackTrace();
-            // Return a special error code used specifically by the web front-end.
-            System.exit(2);
-		} catch (IOException e) {
-			App.exit(e);
+			exception = e;
+		} finally {
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
+			if (exception != null) {
+				throw new CombinerException("");
+			}
 		}
 	}
 	
@@ -161,62 +172,29 @@ public class Compressor {
 	 * @param in Input reader.
 	 * @param out Output writer.
 	 */
-	private void compressCSS(Reader in, Writer out) {
-		try {
-			new CssCompressor(in).compress(out, linebreakpos);
-		} catch (IOException e) {
-			App.exit(e);
-		}
-	}
-	
-	/**
-	 * Concat seed file and all dependencies into a binary array then return the ByteArrayInputStream Reader.
-	 * @param seed The seed file.
-	 * @return The ByteArrayInputStream Reader.
-	 */
-	private Reader prepareInput(File seed) {
-		ArrayList<String> output = sourceFile.combo(seed);
-		Reader reader = null;
-		
-		int len = 0;
-    	for (String path : output) {
-    		len += sourceFile.read(path).length;
-    		len += this.NEW_LINE.length;
-    	}
-    	
-    	ByteBuffer buffer = ByteBuffer.allocate(len);
-    	for (String path : output) {
-    		buffer.put(sourceFile.read(path));
-    		buffer.put(this.NEW_LINE);
-    	}
-    	
-    	try {
-    		reader = new InputStreamReader(new ByteArrayInputStream(buffer.array()), this.charset);
-		} catch (UnsupportedEncodingException e) {
-			App.exit(e);
-		}
-		
-		return reader;
-	}
-	
-	/**
-	 * Open the output file then return the Writer.
-	 * @param seed The seed file.
-	 * @return The FileOutputStream Writer.
-	 */
-	private Writer prepareOutput(File seed) {
-		Writer w = null;
+	private void compressCSS(File seed) throws IOException, SourceFileException {
+		Reader in = null;
+		Writer out = null;
 		
 		try {
-			// Output file locates in the same folder,
-			// and has the same name with the seed file but a different extension name.
-			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("\\." + this.extname + "$", "")), this.charset);
-		} catch (UnsupportedEncodingException e) {
-			App.exit(e);
-		} catch (FileNotFoundException e) {
-			App.exit(e);
+			in = prepareInput(seed);
+			
+			CssCompressor compressor = new CssCompressor(in);
+			
+			// Close the input stream first, and then open the output stream,
+            // in case the output file should override the input file.
+			in.close();
+			in = null;
+			out = prepareOutput(seed);
+			
+			compressor.compress(out, this.linebreakpos);
+		} finally {
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
 		}
-		
-		return w;
 	}
 }

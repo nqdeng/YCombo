@@ -19,20 +19,21 @@ Since YCombo wraps YUI Compressor inside, most command-line arguments of YUI Com
 				
 	Global Options
 	  -h, --help               Displays this information.
-	  --charset <charset>      Read the input file using <charset>, default to UTF-8.
-	  --line-break <column>    Insert a line break after the specified column number.
-	  -v, --verbose            Display informational messages and warnings.
+	  --charset <charset>      Read the input file using <charset>, default to UTF-8
+	  --line-break <column>    Insert a line break after the specified column number
+	  -v, --verbose            Display informational messages and warnings
 				
 	JavaScript Options
-	  --nomunge                Minify only, do not obfuscate.
-	  --preserve-semi          Preserve all semicolons.
-	  --disable-optimizations  Disable all micro optimizations.
+	  --nomunge                Minify only, do not obfuscate
+	  --preserve-semi          Preserve all semicolons
+	  --disable-optimizations  Disable all micro optimizations
 				
 	Combo Options
-	  --root <folder>          Specify the root folder of dependent files.
-	  --extname <prefix>       Specify the extension name of seed file.
+	  --root <folder>          Specify the root folder of dependent files
+	  --extname <prefix>       Specify the extension name of seed file
 	                           It defaults to "seed" so seed file has a default
-	                           extension name ".js.seed" or ".css.seed".
+	                           extension name ".js.seed" or ".css.seed"
+      --nocompress             Combine only, do not compress
 				
 	If root folder is not specified, it defaults to workdir. If workdir is inside
 	intl-style/xxx/htdocs, htdocs will be used as root folder instead.

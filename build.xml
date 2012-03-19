@@ -5,13 +5,13 @@
 		<property file="ant.properties" />
 	</target>
 	
-	<target name="init" depends="load.properties">
+	<target name="init" depends="load.properties,clean">
 		<mkdir dir="${bin.dir}" />
 		<mkdir dir="${build.dir}" />
 	</target>
 	
 	<target name="compile" depends="init">
-		<javac srcdir="${src.dir}" destdir="${bin.dir}" includes="**/*.java" includeantruntime="false">
+		<javac srcdir="${src.dir}" destdir="${bin.dir}" includes="**/*.java" includeantruntime="false" deprecation="off" debug="on">
 			<classpath>
 				<pathelement location="${lib.dir}/yuicompressor-2.4.7.jar"/>
 			</classpath>
@@ -19,12 +19,19 @@
 	</target>
 	
 	<target name="jar" depends="compile">
-		<jar jarfile="${build.dir}/${jar.name}" basedir="${bin.dir}">
-			<zipfileset src="${lib.dir}/yuicompressor-${version.yuicompressor.number}.jar" includes="**/*.class" />
+		<mkdir dir="${build.dir}/jar"/>
+		<!-- The order is important here. Rhino MUST be unjarred first!
+             (some of our own classes will override the Rhino classes) -->
+        <unjar src="${lib.dir}/yuicompressor-${version.yuicompressor.number}.jar" dest="${build.dir}/jar" />
+		<copy todir="${build.dir}/jar">
+			<fileset dir="${bin.dir}" includes="**/*.class"/>
+		</copy>
+		<jar destfile="${build.dir}/${jar.name}" basedir="${build.dir}/jar">
 			<manifest>
 				<attribute name="Main-Class" value="com.alibaba.f2e.ycombo.App"/>
 			</manifest>
 		</jar>
+		<delete dir="${build.dir}/jar" quiet="true" />
 	</target>
 	
 	<target name="loader" depends="load.properties">

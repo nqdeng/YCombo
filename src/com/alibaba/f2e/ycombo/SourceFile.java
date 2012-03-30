@@ -42,7 +42,7 @@ public class SourceFile {
 		dependenceMap = new HashMap<String, ArrayList<String>>();
 		
 		// Match "// #require <path>" or "// #require "path"" or "/* #require <path> */" or "/* #require "path" */".
-		PATTERN_REQUIRE = Pattern.compile("^/[/\\*]\\s#require\\s([\"<])([\\w\\-\\./]+)[\">](?:\\s\\*/)?$", Pattern.MULTILINE);
+		PATTERN_REQUIRE = Pattern.compile("^\\s*/[/\\*]\\s#require\\s([\"<])([\\w\\-\\./]+)[\">](?:\\s\\*/)?\\s*$", Pattern.MULTILINE);
 		
 		locateRoot(root);
 		

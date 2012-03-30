@@ -1,2 +1,2 @@
 :: Created by ant, please don't edit manually.
-@java -jar "%~dp0\ycombo-0.1.4.jar" %*
+@java -jar "%~dp0\ycombo-0.1.5.jar" %*

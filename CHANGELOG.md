@@ -20,3 +20,7 @@
 * Fix the log when input file has syntax error.
 * Error in one seed file will not break the whole combo task now.
 * Add new common-line option "--nocompress", allowing to combine file only.
+
+2012.03.30, Version 0.1.5
+-------------------------
+* Auto trim head & tail whitespace of #require instruction line for improving fault-tolerant.

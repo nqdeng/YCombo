@@ -20,6 +20,9 @@ public class Combiner {
 	// Seed file extension name.
 	protected String extname;
 	
+	// Semicolon charactor.
+	protected byte[] SEMICOLON;
+	
 	// New line character.
 	protected byte[] NEW_LINE;
 	
@@ -31,6 +34,7 @@ public class Combiner {
 		this.extname = extname;
 		
 		try {
+			this.SEMICOLON = ";".getBytes(this.charset);
 			this.NEW_LINE = "\r\n".getBytes(this.charset);
 		} catch (UnsupportedEncodingException e) {
 			App.exit(e);
@@ -92,12 +96,17 @@ public class Combiner {
 		int len = 0;
     	for (String path : output) {
     		len += sourceFile.read(path).length;
+    		len += this.SEMICOLON.length;
     		len += this.NEW_LINE.length;
     	}
     	
     	ByteBuffer buffer = ByteBuffer.allocate(len);
     	for (String path : output) {
     		buffer.put(sourceFile.read(path));
+    		// Insert an semicolon betweens files to avoid the bug
+    		// when a function expression that misses the semicolon at end
+    		// and followed by a parentheses.
+    		buffer.put(this.SEMICOLON);
     		// Insert an empty line betweens files to avoid the single-line comment
     		// at the last line of the prev file mixing with the code
     		// at the first line of the next file.

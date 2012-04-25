@@ -24,3 +24,7 @@
 2012.03.30, Version 0.1.5
 -------------------------
 * Auto trim head & tail whitespace of #require instruction line for improving fault-tolerant.
+
+2012.04.25, Version 0.1.6
+-------------------------
+* Add a semicolon between files that combined together to avoid the known semicolon bug.

@@ -76,7 +76,6 @@ public class Compressor extends Combiner {
 	 */
 	private void compress(File seed) throws SourceFileException, CombinerException {
 		String name = seed.getName();
-		String type = null;
 		
 		try {
 			if (name.endsWith(".js." + this.extname)) {

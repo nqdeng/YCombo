@@ -20,6 +20,9 @@ public class Combiner {
 	// Seed file extension name.
 	protected String extname;
 	
+	// Type of seed file.
+	protected String type;
+	
 	// Semicolon charactor.
 	protected byte[] SEMICOLON;
 	
@@ -58,7 +61,6 @@ public class Combiner {
 	private void combine(File seed) throws SourceFileException, CombinerException {
 		try {
 			String name = seed.getName();
-			String type = null;
 			int c;
 			
 			if (name.endsWith(".js." + this.extname)) {
@@ -96,7 +98,9 @@ public class Combiner {
 		int len = 0;
     	for (String path : output) {
     		len += sourceFile.read(path).length;
-    		len += this.SEMICOLON.length;
+    		if (type.equals("js")) {
+    			len += this.SEMICOLON.length;
+    		}
     		len += this.NEW_LINE.length;
     	}
     	
@@ -106,7 +110,9 @@ public class Combiner {
     		// Insert an semicolon betweens files to avoid the bug
     		// when a function expression that misses the semicolon at end
     		// and followed by a parentheses.
-    		buffer.put(this.SEMICOLON);
+    		if (type.equals("js")) {
+    			buffer.put(this.SEMICOLON);
+    		}
     		// Insert an empty line betweens files to avoid the single-line comment
     		// at the last line of the prev file mixing with the code
     		// at the first line of the next file.

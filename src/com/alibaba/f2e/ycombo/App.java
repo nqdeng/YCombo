@@ -187,15 +187,9 @@ public class App {
         	// Error in one seed doesn't break the whole task.
         	try {
         		combiner.process(seed);
-        	} catch (SourceFileException e) {
-				exception = e;
-            } catch (CombinerException e) {
-            	exception = e;
-            } finally {
-            	if (exception != null) {
-            		App.err(exception.getMessage());
-            		App.err("Failed to process " + seed.getName());
-            	}
+        	} catch (Exception e) {
+				App.err(e.getMessage());
+            	App.err("Failed to process " + seed.getName());
             }
 		}
 	}

@@ -74,7 +74,7 @@ public class SourceFile {
 	 * @param path The canonical path of source file.
 	 * @return Source file data.
 	 */
-	public byte[] read(String path) throws SourceFileException {
+	public byte[] readBinary(String path) throws SourceFileException {
 		if (!binaryCache.containsKey(path)) {
 			try {
 				BufferedInputStream bf = new BufferedInputStream(new FileInputStream(new File(path)));
@@ -82,7 +82,7 @@ public class SourceFile {
 					byte[] data = new byte[bf.available()];
 					bf.read(data);
 					detectBOM(data, path);
-					binaryCache.put(path, data);
+					binaryCache.put(path, extractDependencies(data, path));
 				} finally {
 					bf.close();
 				}
@@ -100,17 +100,8 @@ public class SourceFile {
 	 * @param charset Source file encoding.
 	 * @return Source file content.
 	 */
-	public String read(String path, String charset) throws SourceFileException {
-		String str = null;
-		byte[] bin = read(path);
-		
-		try {
-			str = Charset.forName(charset).newDecoder().decode(ByteBuffer.wrap(bin)).toString();
-		} catch (CharacterCodingException e) {
-			throw new SourceFileException("Cannot read " + path + " as " + charset + " encoded file");
-		}
-		
-		return str;
+	public String readString(String path) throws SourceFileException {
+		return decode(readBinary(path), path);
 	}
 	
 	/**
@@ -131,6 +122,24 @@ public class SourceFile {
 	}
 	
 	/**
+	 * Decode binary data to string.
+	 * @param data Binary data of file.
+	 * @param path Path of file.
+	 * @return The decoded string.
+	 */
+	private String decode(byte[] data, String path) throws SourceFileException {
+		String content = null;
+		
+		try {
+			content = Charset.forName(charset).newDecoder().decode(ByteBuffer.wrap(data)).toString();
+		} catch (CharacterCodingException e) {
+			throw new SourceFileException("Cannot read " + path + " as " + charset + " encoded file");
+		}
+		
+		return content;
+	} 
+	
+	/**
 	 * Detect Unicode BOM in a source file.
 	 * @param data Binary data of source file.
 	 * @param path The canonical path of source file.
@@ -148,40 +157,59 @@ public class SourceFile {
 	}
 	
 	/**
+	 * Extract dependencies information from input file.
+	 * @param data Binary data of input file.
+	 * @param path Path of input file.
+	 * @return Binary data of input file that excludes the dependencies comments.
+	 */
+	private byte[] extractDependencies(byte[] data, String path) throws SourceFileException {
+		ArrayList<String> dependencies = new ArrayList<String>();
+		Matcher m = PATTERN_REQUIRE.matcher(decode(data, path));
+		
+		while (m.find()) {
+			// Decide which root path to use.
+			// Path wrapped in <> is related to root path.
+			// Path wrapped in "" is related to parent folder of the source file.
+			String root = null;
+			
+			if (m.group(1).equals("<")) {
+				root = this.root;
+			} else {
+				root = new File(path).getParent();
+			}
+			
+			// Get path of required file.
+			String required = m.group(2);
+			
+			File f = new File(root, required);
+			
+			if (f.exists()) {
+				dependencies.add(canonize(f));
+			} else {
+				throw new SourceFileException("Cannot find required file " + required + " in " + path);
+			}
+		}
+		
+		dependenceMap.put(path, dependencies);
+		
+		// Remove dependencies comments from input file.
+		try {
+			data = m.replaceAll("").getBytes(charset);
+		} catch (UnsupportedEncodingException e) {
+			App.exit(e);
+		}
+		
+		return data;
+	}
+	
+	/**
 	 * Get dependencies of a source file.
 	 * @param path The canonical path of source file.
 	 * @return Path of dependencies. 
 	 */
 	private ArrayList<String> getDependencies(String path) throws SourceFileException {
 		if (!dependenceMap.containsKey(path)) {
-			ArrayList<String> dependencies = new ArrayList<String>();
-			Matcher m = PATTERN_REQUIRE.matcher(read(path, charset));
-			
-			while (m.find()) {
-				// Decide which root path to use.
-				// Path wrapped in <> is related to root path.
-				// Path wrapped in "" is related to parent folder of the source file.
-				String root = null;
-				
-				if (m.group(1).equals("<")) {
-					root = this.root;
-				} else {
-					root = new File(path).getParent();
-				}
-				
-				// Get path of required file.
-				String required = m.group(2);
-				
-				File f = new File(root, required);
-				
-				if (f.exists()) {
-					dependencies.add(canonize(f));
-				} else {
-					throw new SourceFileException("Cannot find required file " + required + " in " + path);
-				}
-			}
-			
-			dependenceMap.put(path, dependencies);
+			readBinary(path);
 		}
 		
 		return dependenceMap.get(path);

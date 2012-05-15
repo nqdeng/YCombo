@@ -23,27 +23,26 @@ public class Combiner {
 	// Type of seed file.
 	protected String type;
 	
-	// Semicolon charactor.
-	protected byte[] SEMICOLON;
+	// Line between JS files.
+	protected String SEPARATOR_JS;
 	
-	// New line character.
-	protected byte[] NEW_LINE;
+	// Line between CSS files.
+	protected String SEPARATOR_CSS;
 	
 	// SourceFile instance.
 	protected SourceFile sourceFile;
+	
+	// Output buffer.
+	private ByteArrayOutputStream buffer;
 	
 	public Combiner(String root, String charset, String extname) {
 		this.charset = charset;
 		this.extname = extname;
 		
-		try {
-			this.SEMICOLON = ";".getBytes(this.charset);
-			this.NEW_LINE = "\r\n".getBytes(this.charset);
-		} catch (UnsupportedEncodingException e) {
-			App.exit(e);
-		}
+		SEPARATOR_JS = "\r\n;\r\n";
+		SEPARATOR_CSS = "\r\n\r\n";
 		
-		this.sourceFile = new SourceFile(root, charset);
+		sourceFile = new SourceFile(root, charset);
 	}
 	
 	/**
@@ -51,101 +50,140 @@ public class Combiner {
 	 * @param seed The seed file.
 	 */
 	public void process(File seed) throws SourceFileException, CombinerException {
-		combine(seed);
-	}
-	
-	/**
-	 * Combine the given seed file.
-	 * @param seed The seed file.
-	 */
-	private void combine(File seed) throws SourceFileException, CombinerException {
 		try {
-			String name = seed.getName();
-			int c;
-			
-			if (name.endsWith(".js." + this.extname)) {
-				type = "js";
-			} else if (name.endsWith(".css." + this.extname)) {
-				type = "css";
-			} else {
-				throw new CombinerException("Cannot detect seed file type.");
-			}
-			
-			Reader in = prepareInput(seed);
-			Writer out = prepareOutput(seed);
-
-			while ((c = in.read()) != -1) {
-				out.write(c);
-			}
-			out.flush();
-			
-			in.close();
-			out.close();
+			combine(seed);
 		} catch (IOException e) {
 			App.exit(e);
 		}
 	}
 	
 	/**
+	 * Read data from input, refine it, and write to output.
+	 * @param in Input stream reader.
+	 * @param out Output stream writer.
+	 */
+	protected void refine(Reader in, Writer out) throws IOException, CombinerException {
+		// In this class input data is simply piped to output. 
+		int c;
+		while ((c = in.read()) != -1) {
+			out.write(c);
+		}
+	}
+	
+	/**
+	 * Combine the given seed file.
+	 * @param seed The seed file.
+	 */
+	private void combine(File seed) throws IOException, SourceFileException, CombinerException {
+		String name = seed.getName();
+		
+		if (name.endsWith(".js." + extname)) {
+			type = "js";
+		} else if (name.endsWith(".css." + extname)) {
+			type = "css";
+		} else {
+			throw new CombinerException("Cannot detect seed file type.");
+		}
+		
+		LinkedHashMap<String, Reader> inputs = prepareInput(seed);
+		Writer out = prepareOutput();
+		Reader in = null;
+		String file = null;
+		
+		try {
+			for (Map.Entry<String, Reader> entry : inputs.entrySet()) {
+				file = entry.getKey();
+				in = entry.getValue();
+				
+				refine(in, out);
+				
+				in.close();
+				in = null;
+				
+				// Insert empty lines betweens files to avoid the single-line comment
+	    		// at the last line of the prev file mixing with the code
+	    		// at the first line of the next file.
+	    		// Insert an semicolon betweens JS files to avoid the bug
+	    		// when a function expression that misses the semicolon at end
+	    		// and followed by a parentheses.
+	    		if (type.equals("js")) {
+	    			out.write(SEPARATOR_JS);
+	    		} else if (type.equals("css")) {
+	    			out.write(SEPARATOR_CSS);
+	    		}
+			}
+			
+			out.flush();
+			
+			// Write output buffer to output file.
+			writeFile(seed);
+			
+			out.close();
+			out = null;
+		} catch (CombinerException e) {
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
+			System.err.println("in " + file);
+			throw e;
+		}
+	}
+	
+	/**
 	 * Concat seed file and all dependencies into a binary array then return the ByteArrayInputStream Reader.
 	 * @param seed The seed file.
-	 * @return The ByteArrayInputStream Reader.
+	 * @return The ByteArrayInputStream Readers of each input files.
 	 */
-	protected Reader prepareInput(File seed) throws SourceFileException {
+	private LinkedHashMap<String, Reader> prepareInput(File seed) throws SourceFileException {
 		ArrayList<String> output = sourceFile.combo(seed);
-		Reader reader = null;
+		LinkedHashMap<String, Reader> readers = new LinkedHashMap<String, Reader>();
 		
-		int len = 0;
-    	for (String path : output) {
-    		len += sourceFile.read(path).length;
-    		if (type.equals("js")) {
-    			len += this.SEMICOLON.length;
-    		}
-    		len += this.NEW_LINE.length;
-    	}
-    	
-    	ByteBuffer buffer = ByteBuffer.allocate(len);
-    	for (String path : output) {
-    		buffer.put(sourceFile.read(path));
-    		// Insert an semicolon betweens files to avoid the bug
-    		// when a function expression that misses the semicolon at end
-    		// and followed by a parentheses.
-    		if (type.equals("js")) {
-    			buffer.put(this.SEMICOLON);
-    		}
-    		// Insert an empty line betweens files to avoid the single-line comment
-    		// at the last line of the prev file mixing with the code
-    		// at the first line of the next file.
-    		buffer.put(this.NEW_LINE);
-    	}
-    	
-    	try {
-    		reader = new InputStreamReader(new ByteArrayInputStream(buffer.array()), this.charset);
+		try {
+			for (String path : output) {
+				readers.put(path, new InputStreamReader(new ByteArrayInputStream(sourceFile.readBinary(path)), charset));
+			}
 		} catch (UnsupportedEncodingException e) {
 			App.exit(e);
 		}
 		
-		return reader;
+		return readers;
 	}
 	
 	/**
-	 * Open the output file then return the Writer.
-	 * @param seed The seed file.
+	 * Create an output buffer and return the Writer.
 	 * @return The FileOutputStream Writer.
 	 */
-	protected Writer prepareOutput(File seed) {
+	private Writer prepareOutput() {
 		Writer w = null;
 		
 		try {
-			// Output file locates in the same folder,
-			// and has the same name with the seed file but a different extension name.
-			w = new OutputStreamWriter(new FileOutputStream(seed.getAbsolutePath().replaceAll("\\." + this.extname + "$", "")), this.charset);
+			buffer = new ByteArrayOutputStream();
+			w = new OutputStreamWriter(buffer, charset);
 		} catch (UnsupportedEncodingException e) {
-			App.exit(e);
-		} catch (FileNotFoundException e) {
 			App.exit(e);
 		}
 		
 		return w;
+	}
+	
+	/**
+	 * Map buffer to file.
+	 * @param seed The seed file.
+	 * @param out The output buffer.
+	 */
+	private void writeFile(File seed) throws IOException {
+		try {
+			// Output file locates in the same folder,
+			// and has the same name with the seed file but a different extension name.
+			FileOutputStream file = new FileOutputStream(seed.getAbsolutePath().replaceAll("\\." + extname + "$", ""));
+			buffer.writeTo(file);
+			file.flush();
+			file.close();
+		} catch (FileNotFoundException e) {
+			App.exit(e);
+		}
 	}
 }

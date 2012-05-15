@@ -32,3 +32,7 @@
 2012.04.27, Version 0.1.7
 -------------------------
 * Fix the bug wrongly adding a semicolon between css files.
+
+2012.05.15, Version 0.1.8
+-------------------------
+* Adjust file compression method. Now every required file is compressed independently and outputted one line per file.

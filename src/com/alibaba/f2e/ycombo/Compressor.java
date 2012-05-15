@@ -62,38 +62,16 @@ public class Compressor extends Combiner {
 	}
 	
 	/**
-	 * Process the given seed file.
+	 * Compress code from input by YUI Compressor and write to output.
 	 * @overrides
-	 * @param seed The seed file.
+	 * @param in Input stream reader.
+	 * @param out Output stream writer.
 	 */
-	public void process(File seed) throws SourceFileException, CombinerException {
-		compress(seed);
-	}
-	
-	/**
-	 * Compress the given seed file.
-	 * @param seed The seed file.
-	 */
-	private void compress(File seed) throws SourceFileException, CombinerException {
-		String name = seed.getName();
-		
-		try {
-			if (name.endsWith(".js." + this.extname)) {
-				type = "js";
-			} else if (name.endsWith(".css." + this.extname)) {
-				type = "css";
-			} else {
-				throw new CombinerException("Cannot detect seed file type.");
-			}
-
-			if (type.equals("js")) {
-				compressJS(seed);
-			} else if (type.equals("css")) {
-				compressCSS(seed);
-			}
-			
-		} catch (IOException e) {
-			App.exit(e);
+	protected void refine(Reader in, Writer out) throws IOException, CombinerException {
+		if (type.equals("js")) {
+			compressJS(in, out);
+		} else if (type.equals("css")) {
+			compressCSS(in, out);
 		}
 	}
 	
@@ -102,15 +80,9 @@ public class Compressor extends Combiner {
 	 * @param in Input reader.
 	 * @param out Output writer.
 	 */
-	private void compressJS(File seed) throws IOException, SourceFileException, CombinerException {
-		Reader in = null;
-		Writer out = null;
-		Exception exception = null;
-		
+	private void compressJS(Reader in, Writer out) throws IOException, CombinerException {
 		try {
-			in = prepareInput(seed);
-			
-			JavaScriptCompressor compressor = new JavaScriptCompressor(in, new ErrorReporter() {
+			new JavaScriptCompressor(in, new ErrorReporter() {
 			    public void warning(String message, String sourceName,
 			            int line, String lineSource, int lineOffset) {
 			        if (line < 0) {
@@ -142,27 +114,9 @@ public class Compressor extends Combiner {
 			        error(message, sourceName, line, lineSource, lineOffset);
 			        return new EvaluatorException(message);
 			    }
-			});
-			
-			// Close the input stream first, and then open the output stream,
-            // in case the output file should override the input file.
-			in.close();
-			in = null;
-			out = prepareOutput(seed);
-			
-			compressor.compress(out, this.linebreakpos, this.munge, this.verbose, this.preserveAllSemiColons, this.disableOptimizations);
+			}).compress(out, linebreakpos, munge, verbose, preserveAllSemiColons, disableOptimizations);
 		} catch (EvaluatorException e) {
-			exception = e;
-		} finally {
-			if (in != null) {
-				in.close();
-			}
-			if (out != null) {
-				out.close();
-			}
-			if (exception != null) {
-				throw new CombinerException("");
-			}
+			throw new CombinerException("");
 		}
 	}
 	
@@ -171,29 +125,7 @@ public class Compressor extends Combiner {
 	 * @param in Input reader.
 	 * @param out Output writer.
 	 */
-	private void compressCSS(File seed) throws IOException, SourceFileException {
-		Reader in = null;
-		Writer out = null;
-		
-		try {
-			in = prepareInput(seed);
-			
-			CssCompressor compressor = new CssCompressor(in);
-			
-			// Close the input stream first, and then open the output stream,
-            // in case the output file should override the input file.
-			in.close();
-			in = null;
-			out = prepareOutput(seed);
-			
-			compressor.compress(out, this.linebreakpos);
-		} finally {
-			if (in != null) {
-				in.close();
-			}
-			if (out != null) {
-				out.close();
-			}
-		}
+	private void compressCSS(Reader in, Writer out) throws IOException {
+		new CssCompressor(in).compress(out, linebreakpos);
 	}
 }
